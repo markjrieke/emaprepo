@@ -1,0 +1,253 @@
+---
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+extrafont::loadfonts(device = "win")
+```
+
+# Code Walkthrough
+### April 2021 EMAP Presentation
+
+This file serves as both the code used to generate the plots in the April EMAP presentation, as well as the document describing how the code works. This is an example of a **R Markdown** document, which is a mix of both **code** and **prose**.
+
+To get started, I'll load the libraries needed.
+
+```{r libraries, message=FALSE, warning=FALSE}
+library(readr)
+library(googlesheets4)
+library(tibble)
+library(tidyr)
+library(dplyr)
+library(stringr)
+library(forcats)
+library(ggplot2)
+library(ggtext)
+library(knitr)
+```
+These packages are all a part of the tidyverse, and could have been called with one line, `library(tidyverse)`, but I thought it'd be useful to call each one explicitly to explain its use.  
+
+* **readr and googlesheets4:** Used to read files and import them into data frames (R's version of a data table).
+* **tibble:** A play on the word "table," provides some quality-of-life improvements for working with data frames.
+* **tidyr:** Provides a few functions that help with cleaning data. 
+* **dplyr:** Think of a plyer, like the hand tool. Provides *many* tools that help with working with and transforming data frames.
+* **stringr:** Provides some useful functions that make working with strings a bit easier. 
+* **forcats:** Provides functions that help when working with *factor variables* (it's not important right now what that means, I mostly use the forcats library here to reorder bar charts).
+* **ggplot2:** Used for rendering plots and creating visualizations.
+* **ggtext:** Gives access to custom CSS text formatting. 
+* **knitr:** Allows the document to be rendered. 
+
+With the required packages loaded, we'll import the responses from the form into a data frame and name it `f_response`. Then, we'll render a table of the first five responses, just to get an idea of what we're looking at.
+
+```{r import, message=FALSE, warning=FALSE}
+f_response <- read_sheet("https://docs.google.com/spreadsheets/d/1grrfcEcBXk9snLKBf4weHNgvi-tQegNivA5LVuUO1gk/edit?usp=sharing")
+
+kable(f_response[1:5, ])
+```
+
+This is pretty messy, so let's clean it up:
+
+```{r tidytime, message=FALSE, warning=FALSE}
+# rename the columns to something a bit more readable
+colnames(f_response) <- c("timestamp", "program", "excel_use_time", "excel_use",
+                          "excel_problem", "lang_degree", "lang_diff", "lang_use",
+                          "csharp", "lang_known")
+
+f_response <- f_response %>%
+  select(-timestamp) %>% # keep all cols but the timestamp
+  mutate(program = tolower(program), # put all programs in lowercase
+         program = str_remove(program, "microsoft "), # reformat program strings
+         program = str_replace(program, "teamcenter", "globus"))
+
+kable(f_response[1:5, ])
+
+```
+
+That's still pretty messy, but I'm planning on keeping the lengthy responses as-is for legend labels. The last column, the number of languages known, will need some special work, so I'll remove that from this main data frame and save it to its own separate frame. 
+
+```{r languages, message=FALSE, warning=FALSE}
+# create new dataframe of just the last col:
+f_lang <- f_response %>%
+  select(lang_known)
+
+# remove last col from main data frame:
+f_response <- f_response %>%
+  select(-lang_known)
+```
+
+With all that edited, we can now start creating the plots!
+
+```{r p1, message=FALSE, warning=FALSE}
+f_response %>%
+  ggplot(aes(x = fct_rev(fct_infreq(program)))) + # reoder based on # of responses
+  geom_bar() + 
+  coord_flip()
+```
+
+This is a good start, but it looks like I need to do some more wrangling of this first column.There are some `NA` values and some fields that can be combined into others. Additionally, I'd like to put all the responses with less than one count in an "other" category. I'll save the updated plot as `p_resp1` to work with later. 
+
+```{r p1 part 2, message=FALSE, warning=FALSE}
+f_p_resp1 <- f_response %>%
+  drop_na() %>%
+  mutate(program = str_replace(program, "globus/globus, oracle, smartperf", "globus"),
+         program = str_replace(program, "powerpoint / teams", "powerpoint"),
+         program = str_replace(program, "clarizen", "other"),
+         program = str_replace(program, "citrix desktop", "other"),
+         program = str_replace(program, "teams, excel, sap", "teams"))
+
+p_resp1 <- f_p_resp1 %>%
+  ggplot(aes(x = fct_rev(fct_infreq(program)),
+             fill = program)) +
+  geom_bar() +
+  coord_flip()
+
+p_resp1
+```
+
+Great! This plot tells us what we want to know, but otherwise looks pretty bland. I'll spice it up by running through some reformatting.
+
+```{r p1 part 3, message=FALSE, warning=FALSE}
+# load theme elements
+devtools::source_url("https://raw.githubusercontent.com/markjrieke/thedatadiary/main/dd_theme_elements/dd_theme_elements.R")
+
+# create plot
+p_resp1 +
+  dd_theme + # add some custom formatting that I loaded in above
+  labs(title = "Spreadsheets <span style = 'color:#65D755;'>**Excel**</span> above other programs", # custom CSS styling
+       subtitle = "Excluding Outlook, what computer program do you use most often for work?",
+       x = NULL,
+       y = NULL) +
+  theme(legend.position = "none", # remove legend, since it's redundant
+        plot.title.position = "plot", # shifts the plot title to the left
+        plot.title = element_markdown(family = "Siemens Slab",
+                                      size = 18),
+        plot.subtitle = element_markdown(family = "Siemens Slab",
+                                         size = 14),
+        axis.text = element_markdown(family = "Siemens Slab",
+                                     size = 12)) +
+  scale_fill_manual(values = c(dd_green, # give each bar a custom color
+                               dd_gray,
+                               dd_gray,
+                               dd_gray,
+                               dd_gray)) +
+  scale_y_continuous(labels = scales::number_format(accuracy = 1), # format label as integer
+                     breaks = seq(0, 20, 2)) # set label to show multiples of 2
+
+# save plot (automatically saves most recent plot)
+ggsave("p_resp1.png",
+       width = 9,
+       height = 6,
+       units = "in",
+       dpi = 500)
+
+```
+
+You may notice that I used `scale_y_continuous` to format the x axis - how'd that happen? This is one of ggplot's quirks - I used coord_flip in one of the previous code chunks, which arranges the groups on the y axis, rather than the x axis. This means that ggplot thinks the y axis is now the x axis, and vice-versa. 
+
+The remaining charts are built similarly, so I'll throw together a few pretty quickly.
+
+```{r p2/p3/p4/p5, message=FALSE, warning=FALSE}
+f_response %>%
+  select(excel_use_time) %>% # keep only one column
+  count(excel_use_time) %>% # get the total number of each response
+  mutate(x_var = "group", # create a new variable to force the barplot to stack
+         excel_use_time = fct_relevel(excel_use_time, # manually reorder the responses
+                                      "I live in a spreadsheet.",
+                                      "Daily - I spend a lot of time in spreadsheets.",
+                                      "Regularly - I don't spend everyday in Excel, but at least a few days each week involve a lot of Excel work.",
+                                      "Somewhat regularly - an hour or so each week.",
+                                      "Rarely - maybe once or twice a month.",
+                                      "I'll open a spreadsheet when someone sends me one, but I don't use it myself.")) %>%
+  # add a plot!
+  ggplot(aes(x = x_var,
+             y = n,
+             fill = excel_use_time)) +
+  geom_col(width = 0.3) +
+  coord_flip() + # coord flip! x axis will be treated as y axis
+  scale_fill_manual(values = c("#4CA140", # manually adding in colors for each response
+                               "#58BC4A",
+                               "#65D755",
+                               "#8CE180",
+                               "#B2EBAA")) +
+  labs(title ="Most of us work with <span style = 'color:#65d755;'>**Excel**</span> pretty regularly",
+       subtitle = "How often do you use Excel?",
+       x = NULL,
+       y = NULL) +
+  theme(legend.position = "bottom",
+        legend.direction = "vertical",
+        legend.title = element_blank(),
+        axis.text = element_blank(),
+        plot.title = element_markdown(family = "Siemens Slab",
+                                      size = 18),
+        plot.subtitle = element_markdown(family = "Siemens Slab",
+                                         size = 14),
+        legend.text = element_markdown(family = "Siemens Slab",
+                                       size = 10),
+        panel.background = element_blank(),
+        axis.ticks = element_blank()) +
+  # lots of annotations!
+  annotate(geom = "richtext",
+           label = "Most of us use Excel<br> at least <span style = 'color:#65D755;'>**regularly.**</span>",
+           x = 1.4,
+           y = 17,
+           family = "Siemens Slab",
+           size = 5,
+           label.color = "white") +
+  annotate(geom = "richtext",
+           label = "No one said they <br>**never** use Excel.",
+           x = 0.6,
+           y = 4,
+           family = "Siemens Slab",
+           size = 5,
+           label.color = "white") +
+  annotate(geom = "text",
+           label = "4%",
+           x = 1.3,
+           y = 0.6,
+           family = "Siemens Slab",
+           size = 5) +
+  annotate(geom = "segment",
+           x = 1.2,
+           y = 0.55,
+           xend = 1,
+           yend = 0.55,
+           size = 1) +
+  annotate(geom = "point",
+           x = 1,
+           y = 0.55,
+           size = 3) +
+  annotate(geom = "text",
+           label = "7%",
+           x = 1,
+           y = 2.1,
+           family = "Siemens Slab",
+           size = 5) +
+  annotate(geom = "text",
+           label = "48%",
+           x = 1,
+           y = 9.5,
+           family = "Siemens Slab",
+           size = 5) +
+  annotate(geom = "text",
+           label = "19%",
+           x = 1,
+           y = 18.6,
+           family = "Siemens Slab",
+           size = 5) +
+  annotate(geom = "text",
+           label = "22%",
+           x = 1,
+           y = 24.1,
+           family = "Siemens Slab",
+           size = 5)
+
+ggsave("p_resp2.png",
+       width = 9,
+       height = 6,
+       units = "in",
+       dpi = 500)
+
+```
+
+
