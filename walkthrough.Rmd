@@ -177,6 +177,7 @@ f_response %>%
   theme(legend.position = "bottom",
         legend.direction = "vertical",
         legend.title = element_blank(),
+        plot.title.position = "plot",
         axis.text = element_blank(),
         plot.title = element_markdown(family = "Siemens Slab",
                                       size = 18),
@@ -248,6 +249,213 @@ ggsave("p_resp2.png",
        units = "in",
        dpi = 500)
 
+f_response %>%
+  select(lang_degree) %>%
+  count(lang_degree) %>%
+  mutate(x_var = "group",
+         lang_degree = fct_relevel(lang_degree,
+                                   "Yes, and I had to use it regularly after learning it.",
+                                   "Yes, but I only used it occasionally after learning it.",
+                                   "Yes, but I never used it outside of the class it was taught in.",
+                                   "No")) %>%
+  ggplot(aes(x = x_var,
+             y = n,
+             fill = lang_degree)) +
+  geom_col(width = 0.3) +
+  coord_flip() +
+  scale_fill_manual(values = c(dd_blue_dark,
+                               dd_blue,
+                               dd_purple,
+                               dd_red)) +
+  labs(title = "Using a <span style = 'color:#5565D7;'>**programming language**</span> isn't too common",
+       subtitle = "Did you have to learn a programming language for your degree?",
+       x = NULL,
+       y = NULL) +
+  theme(legend.position = "bottom",
+        legend.direction = "vertical",
+        plot.title.position = "plot",
+        legend.title = element_blank(),
+        axis.text = element_blank(),
+        plot.title = element_markdown(family = "Siemens Slab",
+                                      size = 18),
+        plot.subtitle = element_markdown(family = "Siemens Slab",
+                                         size = 14),
+        legend.text = element_markdown(family = "Siemens Slab",
+                                       size = 10),
+        panel.background = element_blank(),
+        axis.ticks = element_blank()) +
+  annotate(geom = "richtext",
+           x = 0.6,
+           y = 17,
+           label = "Only 8% had to use **regularly!**",
+           family = "Siemens Slab",
+           size = 5,
+           label.color = "white") +
+  annotate(geom = "curve",
+           x = 0.6,
+           y = 23.25,
+           xend = 0.82,
+           yend = 26,
+           curvature = 0.4,
+           size = 1.1,
+           arrow = arrow(length = unit(3, "mm"))) +
+  annotate(geom = "text",
+           label = "7%",
+           x = 1,
+           y = 1,
+           family = "Siemens Slab",
+           fontface = "bold",
+           size = 5,
+           color = "white") +
+  annotate(geom = "text",
+           label = "48%",
+           x = 1,
+           y = 8.5,
+           family = "Siemens Slab",
+           fontface = "bold",
+           size = 5,
+           color = "white") +
+  annotate(geom = "text",
+           label = "37%",
+           x = 1, 
+           y = 20.5,
+           family = "Siemens Slab",
+           fontface = "bold",
+           size = 5,
+           color = "white")
+
+ggsave("p_resp3.png",
+       width = 9,
+       height = 6,
+       units = "in",
+       dpi = 500)
+
+f_response %>%
+  select(excel_problem) %>%
+  count(excel_problem) %>%
+  mutate(x_var = "group",
+         excel_problem = fct_relevel(excel_problem,
+                                     "Yes",
+                                     "No")) %>%
+  ggplot(aes(x = x_var,
+             y = n,
+             fill = excel_problem)) + 
+  geom_col(width = 0.3) +
+  coord_flip() +
+  scale_fill_manual(values = c(dd_red,
+                               dd_blue)) +
+  labs(title = "Excel has some <span style = 'color:#D75565;'>**hidden issues.**</span>",
+       subtitle = "Have you ever run into this with a data table in Excel?",
+       x = NULL,
+       y = NULL) +
+  theme(legend.position = "none",
+        legend.direction = "vertical",
+        plot.title.position = "plot",
+        legend.title = element_blank(),
+        axis.text = element_blank(),
+        plot.title = element_markdown(family = "Siemens Slab",
+                                      size = 18),
+        plot.subtitle = element_markdown(family = "Siemens Slab",
+                                         size = 14),
+        legend.text = element_markdown(family = "Siemens Slab",
+                                       size = 10),
+        panel.background = element_blank(),
+        axis.ticks = element_blank()) +
+  annotate(geom = "text",
+           label = "No (30%)",
+           x = 1, 
+           y = 4,
+           family = "Siemens Slab",
+           fontface = "bold",
+           size = 5,
+           color = "white") +
+  annotate(geom = "text",
+           label = "Yes (70%)",
+           x = 1, 
+           y = 17.5,
+           family = "Siemens Slab",
+           fontface = "bold",
+           size = 5,
+           color = "white")
+  
+ggsave("p_resp4.png",
+       width = 9,
+       height = 6,
+       units = "in",
+       dpi = 500)
+
 ```
 
+The next chart is the learning curve chart - this is all made with made-up data for effect.
+
+```{r learning charts, message=FALSE, warning=FALSE}
+# create a tibble (dataframe) with the data for the "other" curve
+f_std <- tibble(x_var = seq(0, 1, 0.01)) %>%
+  mutate(y_var = x_var ^ 4, # arbitrary equation so that the plot looks good
+         curve = "std")
+
+# create a tibble with the data for the R curve
+f_rcurve <- f_std %>%
+  mutate(y_var = 1 - (1 - x_var) ^ (4), # arbitrary equation so that the plot looks good
+         curve = "rcurve")
+
+# merge together to make plotting easier
+f_curves <- rbind(f_std, f_rcurve)
+
+# first plot
+f_curves %>%
+  filter(curve == "std") %>% # filter out to only plot one curve
+  ggplot(aes(x = x_var,
+             y = y_var,
+             color = curve)) +
+  geom_path(size = 1.1) +
+  scale_color_manual(values = dd_red) +
+  dd_theme +
+  labs(title = "Learning curves",
+       subtitle = "How <span style = 'color:#D75565;'>**other**</span> languages are taught.",
+       x = NULL,
+       y = NULL) +
+  theme(legend.position = "none",
+        plot.title.position = "plot",
+        plot.title = element_markdown(family = "Siemens Slab",
+                                      size = 18),
+        plot.subtitle = element_markdown(family = "Siemens Slab",
+                                         size = 14),
+        axis.text = element_blank(),
+        axis.ticks = element_blank())
+
+ggsave("p_resp5.png",
+       width = 9,
+       height = 6,
+       units = "in",
+       dpi = 500)
+
+# second plot
+f_curves %>%
+  ggplot(aes(x = x_var,
+             y = y_var,
+             color = curve)) + 
+  geom_path(size = 1.1) +
+  scale_color_manual(values = c(dd_blue,
+                                dd_red)) +
+  dd_theme +
+  labs(title = "Learning curves",
+       subtitle = "How <span style = 'color:#5565D7;'>**R**</span> and <span style = 'color:#D75565;'>**other**</span> languages are taught.",
+       x = NULL,
+       y = NULL) +
+  theme(legend.position = "none",
+        plot.title.position = "plot",
+        plot.title = element_markdown(family = "Siemens Slab",
+                                      size = 18),
+        plot.subtitle = element_markdown(family = "Siemens Slab",
+                                         size = 14),
+        axis.text = element_blank(),
+        axis.ticks = element_blank())
+
+ggsave("p_resp6.png",
+       width = 9,
+       height = 6,
+       units = "in",
+       dpi = 500)
+```
 
