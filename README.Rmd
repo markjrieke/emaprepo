@@ -12,6 +12,8 @@ extrafont::loadfonts(device = "win")
 
 This file serves as both the code used to generate the plots in the April EMAP presentation, as well as the document describing how the code works. This is an example of a **R Markdown** document, which is a mix of both **code** and **prose**.
 
+## Getting Started
+
 To get started, I'll load the libraries needed.
 
 ```{r libraries, message=FALSE, warning=FALSE}
@@ -26,7 +28,7 @@ library(ggplot2)
 library(ggtext)
 library(knitr)
 ```
-These packages are all a part of the tidyverse, and could have been called with one line, `library(tidyverse)`, but I thought it'd be useful to call each one explicitly to explain its use.  
+With the exception of `googlesheets4`, `ggtext`, and `knitr`, these packages are all a part of the tidyverse, and could have been called with one line, `library(tidyverse)`, but I thought it'd be useful to call each one explicitly to explain its use.  
 
 * **readr and googlesheets4:** Used to read files and import them into data frames (R's version of a data table).
 * **tibble:** A play on the word "table," provides some quality-of-life improvements for working with data frames.
@@ -39,6 +41,8 @@ These packages are all a part of the tidyverse, and could have been called with 
 * **knitr:** Allows the document to be rendered. 
 
 With the required packages loaded, we'll import the responses from the form into a data frame and name it `f_response`. Then, we'll render a table of the first five responses, just to get an idea of what we're looking at.
+
+## Import and Tidy
 
 ```{r import, message=FALSE, warning=FALSE}
 f_response <- read_sheet("https://docs.google.com/spreadsheets/d/1grrfcEcBXk9snLKBf4weHNgvi-tQegNivA5LVuUO1gk/edit?usp=sharing")
@@ -75,6 +79,9 @@ f_lang <- f_response %>%
 f_response <- f_response %>%
   select(-lang_known)
 ```
+
+
+## Making the First Plot
 
 With all that edited, we can now start creating the plots!
 
@@ -146,6 +153,8 @@ ggsave("p_resp1.png",
 You may notice that I used `scale_y_continuous` to format the x axis - how'd that happen? This is one of ggplot's quirks - I used coord_flip in one of the previous code chunks, which arranges the groups on the y axis, rather than the x axis. This means that ggplot thinks the y axis is now the x axis, and vice-versa. 
 
 The remaining charts are built similarly, so I'll throw together a few pretty quickly.
+
+## Other Plots
 
 ```{r p2/p3/p4/p5, message=FALSE, warning=FALSE}
 f_response %>%
@@ -500,4 +509,8 @@ ggsave("p_resp7.png",
        dpi = 500)
 ```
 
-And that's it! I could have saved a bit of code by writing a new theme file, but I was being a bit lazy. There's a general rule of thumb, *"anytime you copy and paste code three times, you should just think about writing a function.* I think I copied and pasted the theme for just about every chart. 
+## Some Closing Notes
+
+I could have saved a bit of code by writing a new theme file, but I was being a bit lazy. There's a general rule of thumb, *"anytime you copy and paste code three times, you should just think about writing a function.* I think I copied and pasted the theme for just about every chart. 
+
+If you read this, I hope it ended up being helpful. This is a fun pasttime for me, so I'm happy to answer any questions you might have, just [shoot me an email](mailto:mark.rieke@siemens-energy.com).

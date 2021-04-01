@@ -1,20 +1,16 @@
----
-output: rmarkdown::github_document
----
-
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-extrafont::loadfonts(device = "win")
-```
 
 # Code Walkthrough
+
 ### April 2021 EMAP Presentation
 
-This file serves as both the code used to generate the plots in the April EMAP presentation, as well as the document describing how the code works. This is an example of a **R Markdown** document, which is a mix of both **code** and **prose**.
+This file serves as both the code used to generate the plots in the
+April EMAP presentation, as well as the document describing how the code
+works. This is an example of a **R Markdown** document, which is a mix
+of both **code** and **prose**.
 
-To get started, I'll load the libraries needed.
+To get started, I’ll load the libraries needed.
 
-```{r libraries, message=FALSE, warning=FALSE}
+``` r
 library(readr)
 library(googlesheets4)
 library(tibble)
@@ -26,29 +22,49 @@ library(ggplot2)
 library(ggtext)
 library(knitr)
 ```
-These packages are all a part of the tidyverse, and could have been called with one line, `library(tidyverse)`, but I thought it'd be useful to call each one explicitly to explain its use.  
 
-* **readr and googlesheets4:** Used to read files and import them into data frames (R's version of a data table).
-* **tibble:** A play on the word "table," provides some quality-of-life improvements for working with data frames.
-* **tidyr:** Provides a few functions that help with cleaning data. 
-* **dplyr:** Think of a plyer, like the hand tool. Provides *many* tools that help with working with and transforming data frames.
-* **stringr:** Provides some useful functions that make working with strings a bit easier. 
-* **forcats:** Provides functions that help when working with *factor variables* (it's not important right now what that means, I mostly use the forcats library here to reorder bar charts).
-* **ggplot2:** Used for rendering plots and creating visualizations.
-* **ggtext:** Gives access to custom CSS text formatting. 
-* **knitr:** Allows the document to be rendered. 
+These packages are all a part of the tidyverse, and could have been
+called with one line, `library(tidyverse)`, but I thought it’d be useful
+to call each one explicitly to explain its use.
 
-With the required packages loaded, we'll import the responses from the form into a data frame and name it `f_response`. Then, we'll render a table of the first five responses, just to get an idea of what we're looking at.
+  - **readr and googlesheets4:** Used to read files and import them into
+    data frames (R’s version of a data table).
+  - **tibble:** A play on the word “table,” provides some
+    quality-of-life improvements for working with data frames.
+  - **tidyr:** Provides a few functions that help with cleaning data.
+  - **dplyr:** Think of a plyer, like the hand tool. Provides *many*
+    tools that help with working with and transforming data frames.
+  - **stringr:** Provides some useful functions that make working with
+    strings a bit easier.
+  - **forcats:** Provides functions that help when working with *factor
+    variables* (it’s not important right now what that means, I mostly
+    use the forcats library here to reorder bar charts).
+  - **ggplot2:** Used for rendering plots and creating visualizations.
+  - **ggtext:** Gives access to custom CSS text formatting.
+  - **knitr:** Allows the document to be rendered.
 
-```{r import, message=FALSE, warning=FALSE}
+With the required packages loaded, we’ll import the responses from the
+form into a data frame and name it `f_response`. Then, we’ll render a
+table of the first five responses, just to get an idea of what we’re
+looking at.
+
+``` r
 f_response <- read_sheet("https://docs.google.com/spreadsheets/d/1grrfcEcBXk9snLKBf4weHNgvi-tQegNivA5LVuUO1gk/edit?usp=sharing")
 
 kable(f_response[1:5, ])
 ```
 
-This is pretty messy, so let's clean it up:
+| Timestamp           | Excluding Outlook, what computer program do you use most often for work? | How often do you use Excel?                                                                                 | Do you use Excel for analyzing/updating/generally working with data tables? | Have you ever run into this with a data table in Excel: | Did you have to learn a programming language for your degree?   | How would you rate your programming class’ difficulty? | How would you rate your programming class’ usefulness? | Have you taken the C\# training? | What programming languages are you comfortable using (list multiple under “other” if applicable)? |
+| :------------------ | :----------------------------------------------------------------------- | :---------------------------------------------------------------------------------------------------------- | :-------------------------------------------------------------------------- | :------------------------------------------------------ | :-------------------------------------------------------------- | -----------------------------------------------------: | -----------------------------------------------------: | :------------------------------- | :------------------------------------------------------------------------------------------------ |
+| 2021-03-29 12:07:00 | Excel                                                                    | I live in a spreadsheet.                                                                                    | Yes (at least some of the time)                                             | Yes                                                     | Yes, but I never used it outside of the class it was taught in. |                                                      7 |                                                      2 | Yes - done                       | VBA, R                                                                                            |
+| 2021-03-29 12:08:06 | Microsoft Excel                                                          | Regularly - I don’t spend everyday in Excel, but at least a few days each week involve a lot of Excel work. | Yes (at least some of the time)                                             | No                                                      | No                                                              |                                                      1 |                                                      3 | No, and I don’t plan to          | NA                                                                                                |
+| 2021-03-29 12:18:18 | Excel                                                                    | Daily - I spend a lot of time in spreadsheets.                                                              | Yes (at least some of the time)                                             | Yes                                                     | Yes, but I only used it occasionally after learning it.         |                                                      6 |                                                      6 | No, but I plan to                | VBA                                                                                               |
+| 2021-03-29 12:18:24 | Teams                                                                    | Regularly - I don’t spend everyday in Excel, but at least a few days each week involve a lot of Excel work. | Yes (at least some of the time)                                             | Yes                                                     | Yes, but I only used it occasionally after learning it.         |                                                      8 |                                                      8 | No, and I don’t plan to          | VBA, MATLab, C++                                                                                  |
+| 2021-03-29 12:18:34 | Microsoft Excel                                                          | I live in a spreadsheet.                                                                                    | Yes (at least some of the time)                                             | Yes                                                     | No                                                              |                                                     NA |                                                     NA | No, and I don’t plan to          | VBA                                                                                               |
 
-```{r tidytime, message=FALSE, warning=FALSE}
+This is pretty messy, so let’s clean it up:
+
+``` r
 # rename the columns to something a bit more readable
 colnames(f_response) <- c("timestamp", "program", "excel_use_time", "excel_use",
                           "excel_problem", "lang_degree", "lang_diff", "lang_use",
@@ -61,12 +77,22 @@ f_response <- f_response %>%
          program = str_replace(program, "teamcenter", "globus"))
 
 kable(f_response[1:5, ])
-
 ```
 
-That's still pretty messy, but I'm planning on keeping the lengthy responses as-is for legend labels. The last column, the number of languages known, will need some special work, so I'll remove that from this main data frame and save it to its own separate frame. 
+| program | excel\_use\_time                                                                                            | excel\_use                      | excel\_problem | lang\_degree                                                    | lang\_diff | lang\_use | csharp                  | lang\_known      |
+| :------ | :---------------------------------------------------------------------------------------------------------- | :------------------------------ | :------------- | :-------------------------------------------------------------- | ---------: | --------: | :---------------------- | :--------------- |
+| excel   | I live in a spreadsheet.                                                                                    | Yes (at least some of the time) | Yes            | Yes, but I never used it outside of the class it was taught in. |          7 |         2 | Yes - done              | VBA, R           |
+| excel   | Regularly - I don’t spend everyday in Excel, but at least a few days each week involve a lot of Excel work. | Yes (at least some of the time) | No             | No                                                              |          1 |         3 | No, and I don’t plan to | NA               |
+| excel   | Daily - I spend a lot of time in spreadsheets.                                                              | Yes (at least some of the time) | Yes            | Yes, but I only used it occasionally after learning it.         |          6 |         6 | No, but I plan to       | VBA              |
+| teams   | Regularly - I don’t spend everyday in Excel, but at least a few days each week involve a lot of Excel work. | Yes (at least some of the time) | Yes            | Yes, but I only used it occasionally after learning it.         |          8 |         8 | No, and I don’t plan to | VBA, MATLab, C++ |
+| excel   | I live in a spreadsheet.                                                                                    | Yes (at least some of the time) | Yes            | No                                                              |         NA |        NA | No, and I don’t plan to | VBA              |
 
-```{r languages, message=FALSE, warning=FALSE}
+That’s still pretty messy, but I’m planning on keeping the lengthy
+responses as-is for legend labels. The last column, the number of
+languages known, will need some special work, so I’ll remove that from
+this main data frame and save it to its own separate frame.
+
+``` r
 # create new dataframe of just the last col:
 f_lang <- f_response %>%
   select(lang_known)
@@ -76,18 +102,24 @@ f_response <- f_response %>%
   select(-lang_known)
 ```
 
-With all that edited, we can now start creating the plots!
+With all that edited, we can now start creating the plots\!
 
-```{r p1, message=FALSE, warning=FALSE}
+``` r
 f_response %>%
   ggplot(aes(x = fct_rev(fct_infreq(program)))) + # reoder based on # of responses
   geom_bar() + 
   coord_flip()
 ```
 
-This is a good start, but it looks like I need to do some more wrangling of this first column.There are some `NA` values and some fields that can be combined into others. Additionally, I'd like to put all the responses with less than one count in an "other" category. I'll save the updated plot as `p_resp1` to work with later. 
+![](walkthrough_files/figure-gfm/p1-1.png)<!-- -->
 
-```{r p1 part 2, message=FALSE, warning=FALSE}
+This is a good start, but it looks like I need to do some more wrangling
+of this first column.There are some `NA` values and some fields that can
+be combined into others. Additionally, I’d like to put all the responses
+with less than one count in an “other” category. I’ll save the updated
+plot as `p_resp1` to work with later.
+
+``` r
 f_p_resp1 <- f_response %>%
   drop_na() %>%
   mutate(program = str_replace(program, "globus/globus, oracle, smartperf", "globus"),
@@ -105,9 +137,12 @@ p_resp1 <- f_p_resp1 %>%
 p_resp1
 ```
 
-Great! This plot tells us what we want to know, but otherwise looks pretty bland. I'll spice it up by running through some reformatting.
+![](walkthrough_files/figure-gfm/p1%20part%202-1.png)<!-- -->
 
-```{r p1 part 3, message=FALSE, warning=FALSE}
+Great\! This plot tells us what we want to know, but otherwise looks
+pretty bland. I’ll spice it up by running through some reformatting.
+
+``` r
 # load theme elements
 devtools::source_url("https://raw.githubusercontent.com/markjrieke/thedatadiary/main/dd_theme_elements/dd_theme_elements.R")
 
@@ -133,21 +168,29 @@ p_resp1 +
                                dd_gray)) +
   scale_y_continuous(labels = scales::number_format(accuracy = 1), # format label as integer
                      breaks = seq(0, 20, 2)) # set label to show multiples of 2
+```
 
+![](walkthrough_files/figure-gfm/p1%20part%203-1.png)<!-- -->
+
+``` r
 # save plot (automatically saves most recent plot)
 ggsave("p_resp1.png",
        width = 9,
        height = 6,
        units = "in",
        dpi = 500)
-
 ```
 
-You may notice that I used `scale_y_continuous` to format the x axis - how'd that happen? This is one of ggplot's quirks - I used coord_flip in one of the previous code chunks, which arranges the groups on the y axis, rather than the x axis. This means that ggplot thinks the y axis is now the x axis, and vice-versa. 
+You may notice that I used `scale_y_continuous` to format the x axis -
+how’d that happen? This is one of ggplot’s quirks - I used coord\_flip
+in one of the previous code chunks, which arranges the groups on the y
+axis, rather than the x axis. This means that ggplot thinks the y axis
+is now the x axis, and vice-versa.
 
-The remaining charts are built similarly, so I'll throw together a few pretty quickly.
+The remaining charts are built similarly, so I’ll throw together a few
+pretty quickly.
 
-```{r p2/p3/p4/p5, message=FALSE, warning=FALSE}
+``` r
 f_response %>%
   select(excel_use_time) %>% # keep only one column
   count(excel_use_time) %>% # get the total number of each response
@@ -242,7 +285,11 @@ f_response %>%
            y = 24.1,
            family = "Siemens Slab",
            size = 5)
+```
 
+![](walkthrough_files/figure-gfm/p2/p3/p4/p5-1.png)<!-- -->
+
+``` r
 ggsave("p_resp2.png",
        width = 9,
        height = 6,
@@ -323,7 +370,11 @@ f_response %>%
            fontface = "bold",
            size = 5,
            color = "white")
+```
 
+![](walkthrough_files/figure-gfm/p2/p3/p4/p5-2.png)<!-- -->
+
+``` r
 ggsave("p_resp3.png",
        width = 9,
        height = 6,
@@ -377,18 +428,22 @@ f_response %>%
            fontface = "bold",
            size = 5,
            color = "white")
-  
+```
+
+![](walkthrough_files/figure-gfm/p2/p3/p4/p5-3.png)<!-- -->
+
+``` r
 ggsave("p_resp4.png",
        width = 9,
        height = 6,
        units = "in",
        dpi = 500)
-
 ```
 
-The next chart is the learning curve chart - this is all made with made-up data for effect.
+The next chart is the learning curve chart - this is all made with
+made-up data for effect.
 
-```{r learning charts, message=FALSE, warning=FALSE}
+``` r
 # create a tibble (dataframe) with the data for the "other" curve
 f_std <- tibble(x_var = seq(0, 1, 0.01)) %>%
   mutate(y_var = x_var ^ 4, # arbitrary equation so that the plot looks good
@@ -423,7 +478,11 @@ f_curves %>%
                                          size = 14),
         axis.text = element_blank(),
         axis.ticks = element_blank())
+```
 
+![](walkthrough_files/figure-gfm/learning%20charts-1.png)<!-- -->
+
+``` r
 ggsave("p_resp5.png",
        width = 9,
        height = 6,
@@ -451,7 +510,11 @@ f_curves %>%
                                          size = 14),
         axis.text = element_blank(),
         axis.ticks = element_blank())
+```
 
+![](walkthrough_files/figure-gfm/learning%20charts-2.png)<!-- -->
+
+``` r
 ggsave("p_resp6.png",
        width = 9,
        height = 6,
@@ -461,7 +524,7 @@ ggsave("p_resp6.png",
 
 Now we just need to put together the density response plots:
 
-```{r density plots, message=FALSE, warning=FALSE}
+``` r
 f_response %>%
   select(lang_diff, lang_use) %>%
   drop_na() %>% # one person didn't respond
@@ -492,7 +555,11 @@ f_response %>%
         axis.ticks.y = element_blank()) +
   scale_x_continuous(labels = scales::number_format(accuracy = 1),
                      breaks = seq(0, 10, 2))
+```
 
+![](walkthrough_files/figure-gfm/density%20plots-1.png)<!-- -->
+
+``` r
 ggsave("p_resp7.png",
        width = 9,
        height = 6,
@@ -500,4 +567,8 @@ ggsave("p_resp7.png",
        dpi = 500)
 ```
 
-And that's it! I could have saved a bit of code by writing a new theme file, but I was being a bit lazy. There's a general rule of thumb, *"anytime you copy and paste code three times, you should just think about writing a function.* I think I copied and pasted the theme for just about every chart. 
+And that’s it\! I could have saved a bit of code by writing a new theme
+file, but I was being a bit lazy. There’s a general rule of thumb,
+*"anytime you copy and paste code three times, you should just think
+about writing a function.* I think I copied and pasted the theme for
+just about every chart.
